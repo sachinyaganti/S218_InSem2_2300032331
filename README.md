@@ -1,6 +1,12 @@
 # Event Management System - Kubernetes Deployment
 
+[![CI/CD Pipeline](https://github.com/sachinyaganti/S218_InSem2_2300032331/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/sachinyaganti/S218_InSem2_2300032331/actions/workflows/ci-cd.yml)
+[![Release](https://github.com/sachinyaganti/S218_InSem2_2300032331/actions/workflows/release.yml/badge.svg)](https://github.com/sachinyaganti/S218_InSem2_2300032331/actions/workflows/release.yml)
+[![Deploy](https://github.com/sachinyaganti/S218_InSem2_2300032331/actions/workflows/deploy.yml/badge.svg)](https://github.com/sachinyaganti/S218_InSem2_2300032331/actions/workflows/deploy.yml)
+
 A cloud-native Event Management System Fullstack Application deployed on Kubernetes using Helm and Ingress. This application helps organize and participate in events, handles event planning, ticket booking, and e-notifications.
+
+📊 **[View Pipeline Dashboard](https://sachinyaganti.github.io/S218_InSem2_2300032331/)** - Track builds and deployments on GitHub Pages
 
 ## Architecture
 
@@ -246,6 +252,77 @@ Verify Ingress configuration:
 ```bash
 kubectl describe ingress event-management-ingress
 ```
+
+## CI/CD Pipeline
+
+This project includes a comprehensive GitHub Actions CI/CD pipeline for automated builds and deployments.
+
+### 🔄 Automated Workflows
+
+#### 1. CI/CD Pipeline (`ci-cd.yml`)
+Triggers on every push and pull request to main/develop branches:
+- **Backend Build**: Compiles Java/Spring Boot application with Maven
+- **Frontend Build**: Builds React/Vite application with npm
+- **Docker Images**: Builds and pushes container images to GitHub Container Registry
+- **Helm Lint**: Validates Kubernetes deployment configurations
+- **GitHub Pages**: Deploys pipeline dashboard for tracking builds
+
+#### 2. Deployment Workflow (`deploy.yml`)
+Manual deployment workflow for staging/production:
+- Supports environment-specific deployments
+- Configurable image tags
+- Automated health checks and verification
+- Deployment summary in workflow output
+
+#### 3. Release Workflow (`release.yml`)
+Automated release creation on version tags:
+- Builds and tags Docker images with version numbers
+- Packages Helm charts
+- Creates GitHub releases with release notes
+- Publishes artifacts
+
+### 📊 Pipeline Dashboard
+
+Visit the **[CI/CD Dashboard](https://sachinyaganti.github.io/S218_InSem2_2300032331/)** to view:
+- Real-time build status
+- Deployment information
+- Container registry links
+- Project documentation
+
+### 🚀 Triggering Workflows
+
+**Automatic Triggers:**
+```bash
+# Push to main/develop triggers CI/CD pipeline
+git push origin main
+
+# Creating a tag triggers release workflow
+git tag -a v1.0.0 -m "Release version 1.0.0"
+git push origin v1.0.0
+```
+
+**Manual Triggers:**
+- Navigate to **Actions** tab in GitHub
+- Select the workflow (Deploy to Kubernetes or Release)
+- Click "Run workflow"
+- Select environment/options and confirm
+
+### 🐳 Container Images
+
+Images are automatically published to GitHub Container Registry:
+- Backend: `ghcr.io/sachinyaganti/event-management-backend`
+- Frontend: `ghcr.io/sachinyaganti/event-management-frontend`
+
+Tags: `latest`, `<commit-sha>`, `<version>`
+
+### 🛠️ Development Workflow
+
+1. Create a feature branch
+2. Make changes and commit
+3. Push to GitHub - CI pipeline runs automatically
+4. Create Pull Request - CI validates changes
+5. Merge to main - Images are built and published
+6. Tag for release - Release workflow creates artifacts
 
 ## References
 
