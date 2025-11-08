@@ -53,7 +53,8 @@ public class ProductController
 	         return ResponseEntity.ok(output);
 
 	     } catch (Exception e) {
-	         return ResponseEntity.status(500).body("Error: " + e.getMessage());
+	         System.err.println("Error adding product: " + e.getMessage());
+	         return ResponseEntity.status(500).body("Error adding product. Please try again later.");
 	     }
 	 }
 

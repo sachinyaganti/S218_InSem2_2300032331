@@ -120,7 +120,8 @@ public class CustomerController
       }
       catch (Exception e) 
       {
-    	  return ResponseEntity.status(500).body("Failed to Book an Event: " + e.getMessage());
+    	  System.err.println("Failed to Book an Event: " + e.getMessage());
+    	  return ResponseEntity.status(500).body("Failed to Book an Event. Please try again later.");
 	  }
    }
 

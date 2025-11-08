@@ -69,7 +69,8 @@ public class ManagerController
        } 
        catch (Exception e) 
        { 
-    	   return ResponseEntity.status(500).body("Failed to Add Event: " + e.getMessage());
+    	   System.err.println("Failed to Add Event: " + e.getMessage());
+    	   return ResponseEntity.status(500).body("Failed to Add Event. Please try again later.");
        }
    }
    
@@ -98,8 +99,8 @@ public class ManagerController
        }
        catch (Exception e) 
        {
-    	   System.out.println(e.getMessage());
-    	   return ResponseEntity.status(500).body("Error:" + e.getMessage());
+    	   System.err.println("Error updating booking status: " + e.getMessage());
+    	   return ResponseEntity.status(500).body("Error updating booking status. Please try again later.");
 	   }
    }
 
