@@ -20,3 +20,10 @@ spec:
           env:
             - name: REACT_APP_BACKEND_URL
               value: http://backend:{{ .Values.backend.port }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
