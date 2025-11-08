@@ -1,0 +1,34 @@
+mysql:
+  image: mysql:8.0
+  storage: 5Gi
+  rootPassword: root
+  database: eventmanagement
+
+backend:
+  image: event-management-backend:v1
+  replicas: 2
+  port: 8080
+  nodePort: 30080
+
+frontend:
+  image: event-management-frontend:v1
+  replicas: 2
+  port: 80
+  nodePort: 30081
+
+ingress:
+  enabled: true
+  host: eventmanagement.local
+
+autoscaling:
+  backend:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 60
+
+  frontend:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 60
