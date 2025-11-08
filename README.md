@@ -23,13 +23,17 @@ The application consists of three main components:
 ```
 .
 ├── backend/
-│   └── Dockerfile              # Backend Dockerfile
+│   ├── src/                     # Spring Boot source code
+│   ├── pom.xml                  # Maven configuration
+│   └── Dockerfile               # Backend Dockerfile
 ├── frontend/
-│   ├── Dockerfile              # Frontend Dockerfile
-│   └── nginx.conf              # Nginx configuration
+│   ├── src/                     # React/Vite source code
+│   ├── package.json             # NPM configuration
+│   ├── nginx.conf               # Nginx configuration
+│   └── Dockerfile               # Frontend Dockerfile
 ├── helm-chart/
-│   ├── Chart.yaml              # Helm chart metadata
-│   ├── values.yaml             # Configuration values
+│   ├── Chart.yaml               # Helm chart metadata
+│   ├── values.yaml              # Configuration values
 │   └── templates/
 │       ├── backend-deployment.yaml
 │       ├── frontend-deployment.yaml
@@ -135,7 +139,7 @@ kubectl get svc -n ingress-nginx
 
 Open your browser and navigate to:
 - **Frontend**: http://eventmanagement.local
-- **Backend API**: http://eventmanagement.local/api
+- **Backend API**: http://eventmanagement.local/back2
 
 Or access via NodePort:
 - **Frontend**: http://<node-ip>:30081
@@ -150,7 +154,7 @@ Or access via NodePort:
 | `mysql.image` | MySQL Docker image | `mysql:8.0` |
 | `mysql.storage` | Persistent storage size | `5Gi` |
 | `mysql.rootPassword` | MySQL root password | `root` |
-| `mysql.database` | Database name | `eventmanagement` |
+| `mysql.database` | Database name | `event` |
 | `backend.image` | Backend Docker image | `event-management-backend:v1` |
 | `backend.replicas` | Number of backend replicas | `2` |
 | `backend.port` | Backend service port | `8080` |
@@ -165,6 +169,34 @@ Or access via NodePort:
 | `autoscaling.*.minReplicas` | Minimum replicas | `2` |
 | `autoscaling.*.maxReplicas` | Maximum replicas | `5` |
 | `autoscaling.*.targetCPUUtilizationPercentage` | CPU threshold | `60` |
+
+## Application Details
+
+### Backend Configuration
+
+The backend is a Spring Boot application that:
+- Runs on port 8080 inside the container
+- Uses Tomcat as the application server
+- Connects to MySQL database on port 3306
+- Deployed as WAR file at `/back2` context path
+- Uses Java 17 runtime
+
+### Frontend Configuration
+
+The frontend is a React/Vite application that:
+- Runs on port 80 inside the container
+- Uses Nginx as the web server
+- Proxies backend requests to `/back2` path
+- Built using Node.js 18
+- Serves static files from Nginx
+
+### Database Configuration
+
+MySQL database:
+- Uses persistent volume for data storage
+- Automatically creates `event` database on startup
+- Root password: `root` (configurable in values.yaml)
+- Includes readiness probe to ensure database is ready before backend starts
 
 ## Useful Commands
 
@@ -234,6 +266,11 @@ kubectl get pods -l app=mysql
 kubectl logs -l app=mysql
 ```
 
+Check if init containers are waiting:
+```bash
+kubectl describe pod <backend-pod-name>
+```
+
 ### Ingress Not Working
 
 Check Ingress Controller:
@@ -245,6 +282,46 @@ kubectl get svc -n ingress-nginx
 Verify Ingress configuration:
 ```bash
 kubectl describe ingress event-management-ingress
+```
+
+### Frontend Not Connecting to Backend
+
+Check if backend service is accessible:
+```bash
+kubectl get svc backend
+kubectl port-forward svc/backend 8080:8080
+```
+
+Check nginx configuration in frontend pod:
+```bash
+kubectl exec -it <frontend-pod> -- cat /etc/nginx/conf.d/nginx.conf
+```
+
+## Development
+
+### Local Development
+
+Backend:
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+Frontend:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Building Images Locally
+
+```bash
+# Build backend
+docker build -t event-management-backend:v1 ./backend
+
+# Build frontend
+docker build -t event-management-frontend:v1 ./frontend
 ```
 
 ## References

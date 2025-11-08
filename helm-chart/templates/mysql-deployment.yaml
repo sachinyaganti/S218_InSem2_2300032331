@@ -25,7 +25,7 @@ spec:
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
-          readinessProbe:
+          readinessProbe:                # <-- must be here, inside the container
             exec:
               command:
                 - sh
@@ -33,6 +33,13 @@ spec:
                 - mysqladmin ping -h localhost
             initialDelaySeconds: 15
             periodSeconds: 5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
       volumes:
         - name: mysql-data
           persistentVolumeClaim:

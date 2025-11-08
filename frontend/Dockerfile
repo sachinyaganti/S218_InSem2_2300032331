@@ -1,27 +1,30 @@
-# Stage 1: Build stage (Node.js for React/Vite)
+# Step 1: Build stage (Node.js for React/Vite)
 FROM node:18 AS build-stage
 WORKDIR /app
 
-# Install git to allow repo cloning
-RUN apt-get update && apt-get install -y git
+# Copy package files
+COPY package*.json ./
 
-# Clone the Event Management System frontend repo
-RUN git clone https://github.com/suneethabulla/Event-Management-System.git temp && \
-    mv temp/frontend/* . && \
-    rm -rf temp
-
-# Install dependencies and build
+# Install dependencies
 RUN npm install
+
+# Copy the rest of the application
+COPY . .
+
+# Build the application
 RUN npm run build
 
-# Stage 2: Runtime stage (Nginx for serving)
+# Step 2: Runtime stage (Nginx for serving)
 FROM nginx:alpine
 
-# Copy React build output to Nginx
-COPY --from=build-stage /app/dist /usr/share/nginx/html
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/
+
+# Copy React build output into nginx
+COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

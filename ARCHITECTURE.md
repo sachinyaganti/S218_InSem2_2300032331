@@ -1,322 +1,367 @@
-# Architecture Documentation
+# Event Management System Architecture
 
 ## Overview
 
-The Event Management System is a cloud-native fullstack application designed for high availability, scalability, and automated deployment on Kubernetes. It follows microservices architecture principles and leverages Kubernetes native features for orchestration.
+The Event Management System is a cloud-native fullstack application designed for deployment on Kubernetes. It follows a three-tier architecture with clear separation of concerns.
 
-## System Architecture
+## High-Level Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Kubernetes Cluster                       │
-│                                                               │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │                  Ingress Controller                   │   │
-│  │                    (NGINX)                            │   │
-│  └──────────────┬──────────────────┬────────────────────┘   │
-│                 │                  │                          │
-│                 ▼                  ▼                          │
-│  ┌──────────────────────┐  ┌──────────────────────┐         │
-│  │   Frontend Service   │  │   Backend Service    │         │
-│  │    (ClusterIP/NP)    │  │    (ClusterIP/NP)    │         │
-│  └──────────┬───────────┘  └──────────┬───────────┘         │
-│             │                          │                      │
-│             ▼                          ▼                      │
-│  ┌──────────────────────┐  ┌──────────────────────┐         │
-│  │  Frontend Pods (2-5) │  │  Backend Pods (2-5)  │         │
-│  │  ┌────────────────┐  │  │  ┌────────────────┐ │         │
-│  │  │ Nginx + React  │  │  │  │ Tomcat + Spring│ │         │
-│  │  │     (Vite)     │  │  │  │      Boot      │ │         │
-│  │  └────────────────┘  │  │  └────────────────┘ │         │
-│  │  Auto-scaling (HPA)  │  │  Auto-scaling (HPA)  │         │
-│  └──────────────────────┘  └──────────┬───────────┘         │
-│                                        │                      │
-│                                        ▼                      │
-│                             ┌──────────────────────┐         │
-│                             │   MySQL Service      │         │
-│                             │     (ClusterIP)      │         │
-│                             └──────────┬───────────┘         │
-│                                        │                      │
-│                                        ▼                      │
-│                             ┌──────────────────────┐         │
-│                             │     MySQL Pod        │         │
-│                             │  ┌────────────────┐ │         │
-│                             │  │   MySQL 8.0    │ │         │
-│                             │  └────────────────┘ │         │
-│                             │         │            │         │
-│                             │         ▼            │         │
-│                             │  ┌────────────────┐ │         │
-│                             │  │  Persistent    │ │         │
-│                             │  │    Volume      │ │         │
-│                             │  └────────────────┘ │         │
-│                             └──────────────────────┘         │
+│                    Users / Browsers                         │
 └─────────────────────────────────────────────────────────────┘
+                            │
+                            │ HTTP/HTTPS
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│              NGINX Ingress Controller                       │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Routes:                                             │   │
+│  │  - /        → Frontend Service                       │   │
+│  │  - /back2   → Backend Service                        │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+            │                                    │
+            │                                    │
+            ▼                                    ▼
+┌─────────────────────────┐        ┌─────────────────────────┐
+│   Frontend Service      │        │   Backend Service       │
+│   (ClusterIP/NodePort)  │        │   (ClusterIP/NodePort)  │
+│   Port: 80              │        │   Port: 8080            │
+└─────────────────────────┘        └─────────────────────────┘
+            │                                    │
+            │                                    │
+            ▼                                    ▼
+┌─────────────────────────┐        ┌─────────────────────────┐
+│  Frontend Deployment    │        │  Backend Deployment     │
+│  ┌───────────────────┐  │        │  ┌───────────────────┐  │
+│  │   Pod (Replica 1) │  │        │  │   Pod (Replica 1) │  │
+│  │   ┌─────────────┐ │  │        │  │   ┌─────────────┐ │  │
+│  │   │  Nginx      │ │  │        │  │   │  Tomcat     │ │  │
+│  │   │  + React    │ │  │        │  │   │  + Spring   │ │  │
+│  │   │  App        │ │  │        │  │   │  Boot       │ │  │
+│  │   └─────────────┘ │  │        │  │   └─────────────┘ │  │
+│  └───────────────────┘  │        │  └───────────────────┘  │
+│  ┌───────────────────┐  │        │  ┌───────────────────┐  │
+│  │   Pod (Replica 2) │  │        │  │   Pod (Replica 2) │  │
+│  └───────────────────┘  │        │  └───────────────────┘  │
+│  HPA: 2-5 replicas      │        │  HPA: 2-5 replicas      │
+└─────────────────────────┘        └─────────────────────────┘
+                                                │
+                                                │ JDBC
+                                                ▼
+                                   ┌─────────────────────────┐
+                                   │   MySQL Service         │
+                                   │   (ClusterIP)           │
+                                   │   Port: 3306            │
+                                   └─────────────────────────┘
+                                                │
+                                                ▼
+                                   ┌─────────────────────────┐
+                                   │  MySQL Deployment       │
+                                   │  ┌───────────────────┐  │
+                                   │  │   Pod (1 replica) │  │
+                                   │  │   ┌─────────────┐ │  │
+                                   │  │   │  MySQL 8.0  │ │  │
+                                   │  │   └─────────────┘ │  │
+                                   │  └───────────────────┘  │
+                                   └─────────────────────────┘
+                                                │
+                                                │
+                                                ▼
+                                   ┌─────────────────────────┐
+                                   │ Persistent Volume       │
+                                   │ (5Gi Storage)           │
+                                   └─────────────────────────┘
 ```
 
-## Component Details
+## Components
 
-### Frontend Layer
-
-**Technology Stack:**
-- React (v19.1.1) - UI Framework
-- Vite (v7.1.6) - Build Tool
-- Material-UI (v7.3.2) - Component Library
-- Nginx (Alpine) - Web Server
-
-**Responsibilities:**
-- Serve static assets
-- Handle user interactions
-- Communicate with backend APIs
-- Responsive UI/UX
-
-**Scaling:**
-- Horizontal Pod Autoscaler configured
-- Scales from 2 to 5 replicas based on CPU (60% threshold)
-- Each pod has resource limits: 512Mi memory, 200m CPU
-
-### Backend Layer
+### 1. Frontend Layer
 
 **Technology Stack:**
-- Spring Boot 3.4.3 - Application Framework
-- Java 17 - Runtime
-- Spring Data JPA - ORM
-- MySQL Connector - Database Driver
-- Apache Tomcat 9.0 - Application Server
+- React 19.1.1
+- Vite 7.1.6 (Build tool)
+- Material-UI (MUI) 7.3.2
+- React Router DOM 7.9.1
+- Axios for HTTP requests
+- Nginx (Alpine) for serving
 
-**Responsibilities:**
-- Business logic processing
+**Container Configuration:**
+- Base Image: nginx:alpine
+- Exposed Port: 80
+- Build Process: Multi-stage Docker build
+  - Stage 1: Node.js 18 for building React app
+  - Stage 2: Nginx Alpine for serving static files
+
+**Features:**
+- Single Page Application (SPA)
+- Client-side routing
+- Responsive design with Material-UI
+- Proxies backend requests through Nginx
+
+**Nginx Configuration:**
+- Serves React build files from `/usr/share/nginx/html`
+- Proxies `/back2` requests to backend service
+- Handles SPA routing with try_files directive
+
+### 2. Backend Layer
+
+**Technology Stack:**
+- Spring Boot 3.4.3
+- Java 17
+- Spring Data JPA
+- MySQL Connector
+- Apache Tomcat 9.0
+
+**Container Configuration:**
+- Base Image: tomcat:9.0-jdk17-temurin
+- Exposed Port: 8080
+- Build Process: Multi-stage Docker build
+  - Stage 1: Maven 3.9.6 with Java 17 for building
+  - Stage 2: Tomcat 9.0 for runtime
+
+**Features:**
 - RESTful API endpoints
-- Database operations
-- Data validation and transformation
+- JPA/Hibernate for ORM
+- MySQL database integration
+- Deployed as WAR file at `/back2` context path
 
-**Scaling:**
-- Horizontal Pod Autoscaler configured
-- Scales from 2 to 5 replicas based on CPU (60% threshold)
-- Each pod has resource limits: 1Gi memory, 500m CPU
-- Init container ensures MySQL is ready before startup
+**Database Configuration:**
+- Database: `event`
+- Username: `root`
+- Password: `root` (configurable)
+- Connection pool managed by Spring Boot
+- Auto DDL update enabled
 
-### Database Layer
+### 3. Database Layer
 
 **Technology:**
 - MySQL 8.0
 
-**Responsibilities:**
-- Persistent data storage
-- Transaction management
-- Data integrity and consistency
+**Configuration:**
+- Root Password: `root`
+- Database Name: `event`
+- Port: 3306
+- Storage: 5Gi Persistent Volume
 
-**High Availability:**
-- Persistent Volume for data durability
-- Readiness probe to ensure availability
-- 5Gi storage allocation
+**Features:**
+- Persistent storage using PVC
+- Readiness probe for health checking
+- Automatic database initialization
+- Single replica (stateful)
 
-## Networking
+### 4. Kubernetes Resources
 
-### Service Discovery
+#### Deployments
 
-All services use Kubernetes DNS for service discovery:
-- `mysql:3306` - MySQL database
-- `backend:8080` - Backend API
-- `frontend:80` - Frontend application
+**Frontend Deployment:**
+- Replicas: 2 (default)
+- Labels: `app=frontend`
+- Update Strategy: RollingUpdate
+- Resources: Auto-scaled by HPA
 
-### Ingress Configuration
+**Backend Deployment:**
+- Replicas: 2 (default)
+- Labels: `app=backend`
+- Init Container: Waits for MySQL to be ready
+- Update Strategy: RollingUpdate
+- Resources: Auto-scaled by HPA
 
-- **Host:** eventmanagement.local
-- **Frontend Path:** `/` → frontend:80
-- **Backend Path:** `/api` → backend:8080
-- **Ingress Class:** nginx
+**MySQL Deployment:**
+- Replicas: 1 (stateful)
+- Labels: `app=mysql`
+- Volume: Mounts PVC for data persistence
+- Readiness Probe: mysqladmin ping
 
-### Port Mapping
+#### Services
 
-| Component | Container Port | Service Port | NodePort (Optional) |
-|-----------|---------------|--------------|---------------------|
-| Frontend  | 80            | 80           | 30081              |
-| Backend   | 8080          | 8080         | 30080              |
-| MySQL     | 3306          | 3306         | -                  |
+**Frontend Service:**
+- Type: NodePort / ClusterIP
+- Port: 80
+- NodePort: 30081 (optional)
+- Selector: `app=frontend`
+
+**Backend Service:**
+- Type: NodePort / ClusterIP
+- Port: 8080
+- NodePort: 30080 (optional)
+- Selector: `app=backend`
+
+**MySQL Service:**
+- Type: ClusterIP
+- Port: 3306
+- Selector: `app=mysql`
+
+#### Ingress
+
+**Configuration:**
+- Ingress Class: nginx
+- Host: eventmanagement.local
+- Paths:
+  - `/` → Frontend Service (Port 80)
+  - `/back2` → Backend Service (Port 8080)
+
+#### Horizontal Pod Autoscaler (HPA)
+
+**Frontend HPA:**
+- Min Replicas: 2
+- Max Replicas: 5
+- Target CPU: 60%
+
+**Backend HPA:**
+- Min Replicas: 2
+- Max Replicas: 5
+- Target CPU: 60%
+
+#### Persistent Volume Claim
+
+**MySQL PVC:**
+- Access Mode: ReadWriteOnce
+- Storage: 5Gi
+- Storage Class: Default
 
 ## Data Flow
 
-### User Request Flow
+### 1. User Request Flow
 
-1. User accesses `http://eventmanagement.local`
-2. DNS resolves to Ingress Controller
-3. Ingress Controller routes to Frontend Service
-4. Frontend Service load-balances to Frontend Pods
-5. Frontend serves static assets
-6. User interactions trigger API calls to `/api`
-7. Ingress routes `/api` to Backend Service
-8. Backend Service load-balances to Backend Pods
-9. Backend processes request and queries MySQL
-10. Response flows back through the chain
+```
+User Browser
+    ↓
+    → HTTP Request to eventmanagement.local
+    ↓
+NGINX Ingress Controller
+    ↓
+    → Route based on path
+    ↓
+    ├─ Path: /          → Frontend Service → Frontend Pod (Nginx)
+    │                                           ↓
+    │                                      Serve React App
+    │
+    └─ Path: /back2     → Backend Service → Backend Pod (Tomcat)
+                                               ↓
+                                          Spring Boot Application
+                                               ↓
+                                          MySQL Database
+```
 
-### Database Connection Flow
+### 2. Backend to Database Flow
 
-1. Backend pods connect to MySQL via service name: `jdbc:mysql://mysql:3306/eventmanagement`
-2. Connection pooling managed by Spring Boot
-3. Hibernate ORM handles database operations
-4. Database schema auto-updated on deployment
+```
+Backend Pod
+    ↓
+Spring Boot Application
+    ↓
+JDBC Connection (jdbc:mysql://mysql:3306/event)
+    ↓
+MySQL Service (ClusterIP)
+    ↓
+MySQL Pod
+    ↓
+Persistent Volume
+```
 
 ## Scalability Features
 
-### Horizontal Pod Autoscaling (HPA)
+### Horizontal Pod Autoscaling
 
-**Frontend HPA:**
-```yaml
-minReplicas: 2
-maxReplicas: 5
-targetCPUUtilizationPercentage: 60
-```
+The system automatically scales based on CPU utilization:
 
-**Backend HPA:**
-```yaml
-minReplicas: 2
-maxReplicas: 5
-targetCPUUtilizationPercentage: 60
-```
+1. **Metric Server**: Collects CPU/Memory metrics from pods
+2. **HPA Controller**: Monitors metrics and adjusts replica count
+3. **Scaling Decisions**:
+   - Scale up: When CPU > 60% for sustained period
+   - Scale down: When CPU < 60% and not at minimum replicas
 
-### Resource Management
+### Load Balancing
 
-**Frontend Pods:**
-- Requests: 256Mi memory, 100m CPU
-- Limits: 512Mi memory, 200m CPU
+- **Ingress Level**: NGINX Ingress distributes traffic across frontend pods
+- **Service Level**: Kubernetes Services load balance across backend pods
+- **Database**: Single instance (MySQL doesn't auto-scale)
 
-**Backend Pods:**
-- Requests: 512Mi memory, 250m CPU
-- Limits: 1Gi memory, 500m CPU
+## High Availability Features
 
-## High Availability
+### Replica Management
 
-### Pod Distribution
-
-- Multiple replicas for frontend and backend
-- Kubernetes scheduler distributes across nodes
-- Anti-affinity rules can be added for better distribution
+- **Frontend**: Multiple replicas ensure availability during pod failures
+- **Backend**: Multiple replicas with init containers ensure safe startup
+- **Database**: Single replica with persistent storage for data durability
 
 ### Health Checks
 
-**MySQL:**
-- Readiness probe: mysqladmin ping
-- Initial delay: 15s
-- Period: 5s
-
-**Backend:**
-- Init container waits for MySQL availability
-- Uses `nc` (netcat) to check MySQL port 3306
+- **MySQL**: Readiness probe using mysqladmin ping
+- **Backend**: Init container waits for MySQL before starting
+- **Frontend**: Nginx handles health checks implicitly
 
 ### Data Persistence
 
-- PersistentVolumeClaim for MySQL data
-- Storage: 5Gi (configurable)
-- Access Mode: ReadWriteOnce
-- Data survives pod restarts
+- **PVC**: Ensures data survives pod restarts
+- **Access Mode**: ReadWriteOnce for MySQL
+- **Backup**: Manual backup strategy needed for production
 
 ## Security Considerations
 
-### Network Policies (Future Enhancement)
+### Network Policies
 
-- Restrict pod-to-pod communication
-- Allow only necessary ingress/egress
+- All services use ClusterIP for internal communication
+- External access only through Ingress or NodePort
+- MySQL not exposed externally
 
-### Secrets Management (Future Enhancement)
+### Secrets Management
 
-- Use Kubernetes Secrets for passwords
-- External secret management (Vault, AWS Secrets Manager)
+- Database credentials stored in Helm values
+- Should use Kubernetes Secrets in production
+- Environment variables for sensitive data
 
-### RBAC (Future Enhancement)
+### Image Security
 
-- Service accounts for pods
-- Role-based access control
+- Use official base images (nginx:alpine, mysql:8.0, tomcat:9.0)
+- Multi-stage builds reduce attack surface
+- Regular image updates recommended
 
-## Deployment Strategy
-
-### Rolling Updates
-
-- Default deployment strategy
-- Zero-downtime deployments
-- Gradual rollout of new versions
-
-### Rollback Capability
-
-```bash
-helm rollback event-management <revision>
-```
-
-## Monitoring and Observability (Future Enhancement)
-
-### Metrics
-- Prometheus for metrics collection
-- Grafana for visualization
-- HPA metrics from metrics-server
+## Monitoring and Observability
 
 ### Logging
-- Centralized logging with ELK/EFK stack
-- Application logs
-- Access logs
 
-### Tracing
-- Distributed tracing with Jaeger/Zipkin
-- Request flow tracking
+- **Frontend**: Nginx access/error logs
+- **Backend**: Spring Boot logs (stdout)
+- **Database**: MySQL logs
 
-## Disaster Recovery
+### Metrics
 
-### Backup Strategy
+- **HPA**: CPU utilization metrics
+- **Kubernetes**: Pod/Node metrics
+- **Application**: Custom metrics via Spring Boot Actuator (if enabled)
 
-1. **Database Backups:**
-   - Regular MySQL dumps
-   - PV snapshots
-   - Off-cluster backup storage
+## Deployment Strategies
 
-2. **Configuration Backups:**
-   - Helm chart versioning
-   - Values.yaml in version control
+### Rolling Update
 
-### Recovery Procedures
+- Default strategy for Deployments
+- Zero-downtime updates
+- Gradual replacement of old pods
 
-1. **Application Recovery:**
-   ```bash
-   helm install event-management ./helm-chart
-   ```
+### Blue-Green Deployment
 
-2. **Database Recovery:**
-   - Restore from backup
-   - Re-attach PV
-   - Verify data integrity
+- Deploy new version alongside old
+- Switch traffic via Service selector
+- Quick rollback if needed
 
-## Performance Optimization
+### Canary Deployment
 
-### Frontend
-- Static asset caching via Nginx
-- Gzip compression
-- CDN integration (future)
+- Route percentage of traffic to new version
+- Monitor metrics before full rollout
+- Use Ingress annotations for traffic splitting
 
-### Backend
-- Connection pooling
-- Query optimization
-- Caching layer (Redis - future)
+## Future Enhancements
 
-### Database
-- Indexed columns
-- Query optimization
-- Read replicas (future)
-
-## Technology Versions
-
-| Component | Version |
-|-----------|---------|
-| Kubernetes | 1.19+ |
-| Helm | 3.x |
-| React | 19.1.1 |
-| Vite | 7.1.6 |
-| Spring Boot | 3.4.3 |
-| Java | 17 |
-| MySQL | 8.0 |
-| Nginx | Alpine |
-| Tomcat | 9.0 |
-
-## References
-
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [Helm Documentation](https://helm.sh/docs/)
-- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
-- [React Documentation](https://react.dev/)
-- [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/)
+1. **Microservices**: Split backend into smaller services
+2. **API Gateway**: Add dedicated API gateway
+3. **Service Mesh**: Implement Istio/Linkerd for advanced traffic management
+4. **Monitoring**: Add Prometheus/Grafana stack
+5. **Logging**: Implement ELK/EFK stack
+6. **CI/CD**: Integrate with Jenkins/GitLab CI
+7. **Database**: Add read replicas for MySQL
+8. **Caching**: Implement Redis for session/data caching
+9. **Message Queue**: Add RabbitMQ/Kafka for async processing
+10. **Security**: Implement OAuth2/OIDC authentication
