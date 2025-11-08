@@ -2,7 +2,7 @@ mysql:
   image: mysql:8.0
   storage: 5Gi
   rootPassword: root
-  database: eventmanagement
+  database: event
 
 backend:
   image: event-management-backend:v1

@@ -25,7 +25,7 @@ spec:
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
-          readinessProbe:
+          readinessProbe:                # <-- must be here, inside the container
             exec:
               command:
                 - sh

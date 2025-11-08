@@ -42,10 +42,3 @@ spec:
               value: update
             - name: SPRING_JPA_DATABASE_PLATFORM
               value: org.hibernate.dialect.MySQL8Dialect
-          resources:
-            requests:
-              memory: "512Mi"
-              cpu: "250m"
-            limits:
-              memory: "1Gi"
-              cpu: "500m"
