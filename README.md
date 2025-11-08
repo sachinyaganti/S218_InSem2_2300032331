@@ -1,0 +1,4 @@
+HCL Technologies use a cloud-native modernization program project to deploy an Event Management System Fullstack Application on a Kubernetes cluster. The application helps organize and participate applications, handle event planning, ticket booking, and e-notifications. Your task is to deploy the Event Management System Fullstack Application on Kubernetes using Helm and Ingress, ensuring scalability, automation and high availability through containerization and orchestration. 
+Event Management System Fullstack Application URL: https://github.com/suneethabulla/Event-Management-System Frontend and Backend Dockerfiles and Helm chart templates: https://github.com/srithars/Helm-Chart-Template
+
+create project according and push the created project to the repository named https://github.com/sachinyaganti/S218_InSem2_2300032331
