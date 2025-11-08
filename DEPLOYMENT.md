@@ -370,10 +370,37 @@ minikube delete
 kind delete cluster
 ```
 
+## CI/CD Automation
+
+This project includes fully automated CI/CD pipelines using GitHub Actions. See [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md) for complete details.
+
+### Quick Start with GitHub Actions
+
+**Automated Builds**: Every push to main/develop automatically:
+- Builds backend and frontend applications
+- Creates Docker images
+- Pushes to GitHub Container Registry
+- Updates deployment dashboard
+
+**View Pipeline Status**: Visit the [Pipeline Dashboard](https://sachinyaganti.github.io/S218_InSem2_2300032331/)
+
+**Manual Deployment**:
+1. Go to **Actions** > **Deploy to Kubernetes**
+2. Select environment and image tag
+3. Click **Run workflow**
+
+**Create Release**:
+```bash
+git tag -a v1.0.0 -m "Release 1.0.0"
+git push origin v1.0.0
+```
+
+See [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md) for detailed workflow documentation.
+
 ## Next Steps
 
+- ✅ ~~Configure CI/CD pipelines~~ (Completed - see [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md))
 - Configure SSL/TLS for HTTPS
 - Set up monitoring with Prometheus/Grafana
 - Implement backup strategies for MySQL
-- Configure CI/CD pipelines
 - Set up logging with ELK/EFK stack
