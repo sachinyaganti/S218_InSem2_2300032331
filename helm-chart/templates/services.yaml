@@ -1,0 +1,47 @@
+# MySQL Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+  type: ClusterIP
+
+# Backend Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: {{ .Values.backend.port }}
+      targetPort: {{ .Values.backend.port }}
+{{- if .Values.backend.nodePort }}
+      nodePort: {{ .Values.backend.nodePort }}
+{{- end }}
+  type: {{ if .Values.backend.nodePort }}NodePort{{ else }}ClusterIP{{ end }}
+
+# Frontend Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: {{ .Values.frontend.port }}
+      targetPort: {{ .Values.frontend.port }}
+{{- if .Values.frontend.nodePort }}
+      nodePort: {{ .Values.frontend.nodePort }}
+{{- end }}
+  type: {{ if .Values.frontend.nodePort }}NodePort{{ else }}ClusterIP{{ end }}
